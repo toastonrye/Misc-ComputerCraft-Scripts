@@ -23,6 +23,7 @@ if not(fs.exists(filePath))then
     shell.run("pastebin run ESs1mg7P packed true "..filePath:gsub(".lua", ""))
 end
 local basalt = require(filePath:gsub(".lua", ""))
+-- [PIN COLOUR DATA]-----------------------------------------------------------------------------------------------------------------------
 
 pinsStr = {
     "colours.green",
@@ -34,7 +35,6 @@ pinsStr = {
     "colours.red",
     "colours.blue"
 }
-
 pins = {
     colours.green,
     colours.cyan,
@@ -45,7 +45,6 @@ pins = {
     colours.red,
     colours.blue
 }
-
 
 -- [GLOBAL VAR]------------------------------------------------------------------------------ Some of these probably shouldn't be global...
 _VERSION = 0.2
