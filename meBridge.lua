@@ -35,8 +35,13 @@ local mainF = basalt.createFrame("mainF")
 
 fancyButton(mainF:addButton("redstoneOn"):setPosition(3,2):setValue("Redstone On")
     :onClick(function()
-        redstone.setOutput("back", on)
+        redstone.setOutput("back", true)
         basalt.debug("Redstone On") 
+    end))
+fancyButton(mainF:addButton("redstoneOff"):setPosition(6,2):setValue("Redstone Off")
+    :onClick(function()
+        redstone.setOutput("back", false)
+        basalt.debug("Redstone Off") 
     end))
 
 -- ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
