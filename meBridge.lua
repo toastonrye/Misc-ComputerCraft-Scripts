@@ -1,9 +1,9 @@
-local filePath = "basalt"
+local filePath = "basalt.lua"
 if not(fs.exists(filePath))then
     shell.run("wget run https://basalt.madefor.cc/install.lua packed basalt.lua master")
 end
 -- ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-local basalt = require(filePath)
+local basalt = require(basalt)
 
 local function fancyButton(button)
     button:onClick(function(self)
@@ -20,8 +20,6 @@ local function fancyButton(button)
     end)
 end
 
-fancyButton(mainF:addButton("testButton"):setPosition(3,2):setValue("test button")
-
 local me = peripheral.find("meBridge")
 if not me then error("meBridge not found") end
 
@@ -34,6 +32,8 @@ end
 local mainF = basalt.createFrame("mainF")
     :show()
     :setBackground(colours.purple)
+
+local fancyButton(mainF:addButton("testButton"):setPosition(3,2):setValue("test button"))
 
 -- ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 basalt.debug("Hi")
