@@ -3,6 +3,8 @@ if not(fs.exists(filePath))then
     shell.run("wget run https://basalt.madefor.cc/install.lua packed basalt.lua master")
 end
 -- ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+local basalt = require(filePath)
+
 
 local me = peripheral.find("meBridge")
 if not me then error("meBridge not found") end
