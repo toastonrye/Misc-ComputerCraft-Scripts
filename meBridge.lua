@@ -9,7 +9,7 @@ local me = peripheral.find("meBridge")
 if not me then error("meBridge not found") end
 
 local pollCraftable = false
-masterTable = {}
+local tPatterns = {}
 
 local w, h = term.getSize()
 local mainF = basalt.createFrame():show():setBackground(colours.purple)
@@ -31,51 +31,77 @@ local function fancyButton(self, event, button, x, y)
 end
 
 local function pollPatterns()
-	basalt.debug("in pollPatterns")
 	redstone.setOutput("back", true)
-	os.sleep(2)
-	local patterns = me.listCraftableItems()
-	local p = {}
+	local p, temp
+	os.sleep(1)
+	p = me.listCraftableItems()
 	local c, r = 2, 1
-	for k, items in pairs(patterns) do
-		basalt.debug(items.name, items.amount)
-		p[k] = pollF:addLabel():setSize(26,1):setPosition(c,r+k):setValue(items.name .. " | " .. items.amount):setBackground(colours.cyan)
-		table.insert(masterTable, k, {name = items.name, amount = items.amount, setpoint = 0})
+	for k, items in pairs(p) do
+		--basalt.debug(k, items)
+		--p[k] = pollF:addLabel():setSize(26,1):setPosition(c,r+k):setValue(items.name .. " | " .. items.amount):setBackground(colours.cyan)
+		--table.insert(masterTable, {name = items.name, amount = items.amount, setpoint = 2})
 	end
 	redstone.setOutput("back", false)
+	basalt.debug("Redstone Off")
+	return p
 end
 
-local function printMe()
-	basalt.debug("in printDebug")
-	for k, v in pairs(masterTable) do
-		for k2, v2 in pairs(v) do
-			basalt.debug(k2, v2)
-		end
+local function saveMe(p)
+	for k, v in pairs(p) do
+		p[k].setpoint = 32
 	end
 	
+
 	local f = fs.open("testy", "w")
-	f.write(textutils.serialize(masterTable))
+	f.write(textutils.serialize(p))
 	f.close()
+	basalt.debug("Saved!")
+end
+
+local function appendMe(p)
+	local f = fs.open("testy", "r")
+	local load = textutils.unserialize(f.readAll())
+	f.close()
+	basalt.debug("COMPARISON")
+	for k, v in pairs(load) do
+		for k2, v2 in pairs(p) do
+			if v2.name == v.name then
+				basalt.debug("match found " .. v.name)
+				break
+			else
+				basalt.debug("does not exist " .. v.name)
+			end
+		end
+	end
+	--local f = fs.open("testy", "a")
+	--f.write(textutils.serialize(p))
+	--f.close()
 end
 
 local function loadMe()
 	local f = fs.open("testy", "r")
 	local d = f.readAll()
 	f.close()
-	masterTable = textutils.unserialize(d)
+	local p = textutils.unserialize(d)
+	table.remove(p, 2)
 	
-	for k, v in pairs(masterTable) do
-		basalt.debug(v.name, v.amount, v.setpoint)
+	if not p then
+		return -- Does this return have the potential to break parallel.waiteForAll ???
+	end
+	for k, v in pairs(p) do
+		basalt.debug(k, v.name, v.amount)
 	end
 end
 
 
-local buttonPolling = mainF:addButton():onClick(pollPatterns):setSize(10,3):setPosition(1,1):setValue("Poll AE2")
-local buttonSave = mainF:addButton():onClick(printMe):setSize(10,3):setPosition(12,1):setValue("Save")
+local buttonPolling = mainF:addButton():onClick(basalt.schedule(function() tPatterns = pollPatterns() end)):setSize(10,3):setPosition(1,1):setValue("Poll AE2")
+local buttonSave = mainF:addButton():onClick(function() saveMe(tPatterns) end):setSize(10,3):setPosition(12,1):setValue("Save")
+local buttonAppend = mainF:addButton():onClick(function() appendMe(tPatterns) end):setSize(10,3):setPosition(36,1):setValue("Append")
 local buttonLoad = mainF:addButton():onClick(loadMe):setSize(10,3):setPosition(23,1):setValue("Load")
 fancyButton(buttonPolling)
 fancyButton(buttonSave)
 fancyButton(buttonLoad)
+fancyButton(buttonAppend)
 
 local function myMain()
 	while true do
@@ -85,4 +111,4 @@ end
 	
 -- ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 --basalt.debug("Hi")
-parallel.waitForAll(basalt.autoUpdate(), myMain())
+parallel.waitForAll(basalt.autoUpdate, myMain)
