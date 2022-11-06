@@ -8,7 +8,7 @@ Developed with:
 -appliedenergistics2-forge-12.8.4.jar
 -AdvancedPeripherals-0.7.21b.jar
 
-v0.1 - 2022-11-06 - partially working proof of concept. YT:
+v0.1 - 2022-11-06 - partially working proof of concept. YT: https://www.youtube.com/watch?v=5YyxhZpZ1pk
 
 bugs:
 - when clicking off an input box, without entering a number leaves it blank. Can't figure out onLoseFocus event..
