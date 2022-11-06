@@ -56,10 +56,7 @@ local function loadInterface(parsed, frame)
 	local inputSetpoint = {}
 	local w, h = frame:getSize() -- of pollF frame
 	local tempParsed = parsed
-	basalt.debug(w, h)
 	for i=1, #tempParsed do
-		--basalt.debug(i)
-		--basalt.debug("loadInterface " .. k, v.name, v.setpoint)
 		items[i] = frame:addFrame():setBackground(colours.cyan):setPosition(2,i*2):setSize(w-4,1)
 		labelName = items[i]:addLabel():setText(tempParsed[i].name)
 		labelAmount = items[i]:addLabel():setText(tempParsed[i].amount):setPosition(w*0.75, 1)
@@ -76,7 +73,7 @@ local function loadInterface(parsed, frame)
 					updateConfig(tempParsed)
 				end
 			end)
-			:onLoseFocus(function(self)
+			--[[:onLoseFocus(function(self)
 				if key == keys.enter or key == keys.numPadEnter then
 					local t = self.getValue()
 					if t == "" or t < 0 or t > 10000 then
@@ -86,14 +83,14 @@ local function loadInterface(parsed, frame)
 					tempParsed[i].setpoint = t
 					updateConfig(tempParsed)
 				end
-			end)
+			end)--]]
 			:onClick(function(self)
 				self:setValue("")
 			end)
 			
 	end
 	
-	
+	--return items
 
 end
 -- -------------------------------------------------------------------------------------------------------------------
@@ -144,16 +141,31 @@ local function scanCraftableItems(frame)
 	return parsed
 end
 
+local function testCraft()
+	basalt.debug("calling craft")
+	myItem = {name = "minecraft:chest", count = 1}
+	if me.isItemCrafting(myItem) then
+		return
+	end
+	me.craftItem(myItem)
+end
+
 local buttonRescan = mainF:addButton():onClick(basalt.schedule(function() parsedData = scanCraftableItems(pollF) end)):setSize(10,3):setPosition(1,1):setValue("Rescan")
 fancyButton(buttonRescan)
 
-local function myMain()
+local buttonTestCraft = mainF:addButton():onClick(basalt.schedule(function() testCraft() end)):setSize(10,3):setPosition(15,1):setValue("Test Craft")
+fancyButton(buttonRescan)
+
+local function myMain(parsed)
 	while true do
 		os.sleep(1)
+		
+		--basalt.schedule(testCraft())
+		
 	end
 end
 
-parsedData = scanCraftableItems(pollF) -- try to read meBridge.txt if it exists, if not call scanCraftableItems() function
+parsedData = scanCraftableItems(pollF)
 -- -------------------------------------------------------------------------------------------------------------------
 --basalt.debug("Hi")
 parallel.waitForAll(basalt.autoUpdate, myMain)
