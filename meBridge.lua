@@ -14,7 +14,7 @@ local parsedData = {}
 
 local w, h = term.getSize()
 local mainF = basalt.createFrame():show():setBackground(colours.purple)
-local pollF = mainF.addFrame("test"):setSize(w-2,h):setPosition(2,5):setBackground(colours.yellow)
+local pollF = mainF:addFrame("test"):setSize(w-2,h):setPosition(2,5):setBackground(colours.yellow)
 --local itemF = pollF.addFrame():setSize(w-4,1):setPosition(2,2):setBackground(colours.red)
 local pollingProgress = mainF:addProgressbar():setPosition(1,4):setBackground(colours.white):setProgress(10)
 -- -------------------------------------------------------------------------------------------------------------------
@@ -32,14 +32,46 @@ local function fancyButton(self, event, button, x, y)
         self:setForeground(colours.black)
     end)
 end
+
+local function updateConfig(parsed)
+	local f = fs.open("meBridge.txt", "w")
+	f.write(textutils.serialize(parsed))
+	f.close()
+	basalt.debug("Updated!")
+end
+
 -- -------------------------------------------------------------------------------------------------------------------
-local function loadInterface(parsed)
+local function loadInterface(parsed, frame)
 	local items = {}
-	
-	for i = 1, #parsed do
+	local labelName = {}
+	local labelAmount = {}
+	local inputSetpoint = {}
+	local w, h = frame:getSize() -- of pollF frame
+	local tempParsed = parsed
+	basalt.debug(w, h)
+	for i=1, #tempParsed do
 		--basalt.debug(i)
 		--basalt.debug("loadInterface " .. k, v.name, v.setpoint)
-		--items = frame:addFrame():setBackground(colours.cyan):setPosition(0+(i*2), 2):setSize(,):setValue("test")
+		items[i] = frame:addFrame():setBackground(colours.cyan):setPosition(2,i*2):setSize(w-4,1)
+		labelName = items[i]:addLabel():setText(tempParsed[i].name)
+		labelAmount = items[i]:addLabel():setText(tempParsed[i].amount):setPosition(w*0.75, 1)
+		inputSetpoint = items[i]:addInput():setInputType("number"):setValue(tempParsed[i].setpoint)
+			:setPosition(w*0.8, 1):setBackground(colours.lightBlue)
+			:onKey(function(self, event, key)
+				if key == keys.enter or key == keys.numPadEnter then
+					local t = self.getValue()
+					if t == "" or t < 0 or t > 10000 then
+						t = 0
+						self:setValue(0)
+					end
+					tempParsed[i].setpoint = t
+					updateConfig(tempParsed)
+				end
+			end)
+			:onClick(function(self)
+				self:setValue("")
+			end)
+			
 	end
 	
 	
@@ -59,7 +91,7 @@ end
 
 -- scans ae2 and loads user setpoints if they exist or sets to 1
 -- need to explain why the redstone pulse
-local function scanCraftableItems()
+local function scanCraftableItems(frame)
 	local parsed = {} -- new table to hold name, amount, setpoint
 	local config = loadConfig() -- load any existing user setpoints, or set to 1
 	local ae2Raw, loadedSetpoint
@@ -88,17 +120,12 @@ local function scanCraftableItems()
 	f.close()
 	basalt.debug("Saved!")
 	
+	local interface = loadInterface(parsed, frame) -- pass the data and frame to draw it on
+	
 	return parsed
 end
 
-local function init(frame)
-	local p = scanCraftableItems()	
-	local interface = loadInterface(p) -- pass the data and frame to draw it on
-	
-	return p
-end
-
-local buttonRescan = mainF:addButton():onClick(basalt.schedule(function() parsedData = scanCraftableItems() end)):setSize(10,3):setPosition(1,1):setValue("Rescan")
+local buttonRescan = mainF:addButton():onClick(basalt.schedule(function() parsedData = scanCraftableItems(pollF) end)):setSize(10,3):setPosition(1,1):setValue("Rescan")
 fancyButton(buttonRescan)
 
 local function myMain()
@@ -107,7 +134,7 @@ local function myMain()
 	end
 end
 
-parsedData = init() -- try to read meBridge.txt if it exists, if not call scanCraftableItems() function
+parsedData = scanCraftableItems(pollF) -- try to read meBridge.txt if it exists, if not call scanCraftableItems() function
 -- -------------------------------------------------------------------------------------------------------------------
 --basalt.debug("Hi")
 parallel.waitForAll(basalt.autoUpdate, myMain)
