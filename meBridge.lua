@@ -32,58 +32,63 @@ end
 
 local function pollPatterns()
 	redstone.setOutput("back", true)
-	local p, temp
+	local raw
+	local parsed = {}
 	os.sleep(1)
-	p = me.listCraftableItems()
-	local c, r = 2, 1
-	for k, items in pairs(p) do
-		--basalt.debug(k, items)
-		--p[k] = pollF:addLabel():setSize(26,1):setPosition(c,r+k):setValue(items.name .. " | " .. items.amount):setBackground(colours.cyan)
-		--table.insert(masterTable, {name = items.name, amount = items.amount, setpoint = 2})
+	raw = me.listCraftableItems()
+	for k, v in pairs(raw) do
+		table.insert(parsed, {name = v.name, amount = v.amount, setpoint = 1})
 	end
 	redstone.setOutput("back", false)
 	basalt.debug("Redstone Off")
-	return p
+	return parsed
 end
 
 local function saveMe(p)
 	for k, v in pairs(p) do
-		p[k].setpoint = 32
+		--p[k].setpoint = 32
 	end
 	
 
-	local f = fs.open("testy", "w")
+	local f = fs.open("meBridge.txt", "w")
 	f.write(textutils.serialize(p))
 	f.close()
 	basalt.debug("Saved!")
 end
 
 local function appendMe(p)
-	local f = fs.open("testy", "r")
+	local f = fs.open("meBridge.txt", "r")
 	local load = textutils.unserialize(f.readAll())
 	f.close()
 	basalt.debug("COMPARISON")
-	for k, v in pairs(load) do
-		for k2, v2 in pairs(p) do
-			if v2.name == v.name then
-				basalt.debug("match found " .. v.name)
-				break
-			else
-				basalt.debug("does not exist " .. v.name)
+	local m = false
+	if not load then
+		load = p
+	else
+		for k, v in pairs(p) do
+			if v.name == load[k].name and not m then
+				--basalt.debug(v.name .. " = " .. load[k].name)
+				m = true
 			end
+			if not m then
+				table.insert(load, v)
+				basalt.debug("Adding " .. v.name .. " | " .. v.amount .. " | " .. v.setpoint)
+			end
+			m = false
 		end
 	end
-	--local f = fs.open("testy", "a")
-	--f.write(textutils.serialize(p))
-	--f.close()
+	local f = fs.open("meBridge.txt", "w")
+	f.write(textutils.serialize(load))
+	f.close()
+	basalt.debug("Appended!")
 end
 
 local function loadMe()
-	local f = fs.open("testy", "r")
+	local f = fs.open("meBridge.txt", "r")
 	local d = f.readAll()
 	f.close()
 	local p = textutils.unserialize(d)
-	table.remove(p, 2)
+	--table.remove(p, 2)
 	
 	if not p then
 		return -- Does this return have the potential to break parallel.waiteForAll ???
