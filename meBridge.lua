@@ -1,8 +1,18 @@
 --[[
 toastonrye's AE2 Setpoint Controller
 
+Developed with:
+-Basalt UI: https://basalt.madefor.cc/#/
+-minecraft-forge 1.19.2-43.1.47
+-cc-tweaked-1.19.2-1.101.1.jar
+-appliedenergistics2-forge-12.8.4.jar
+-AdvancedPeripherals-0.7.21b.jar
+
+v0.1 - 2022-11-06 - partially working proof of concept. YT:
+
 bugs:
 - when clicking off an input box, without entering a number leaves it blank. Can't figure out onLoseFocus event..
+- many more
 
 --]]
 -- -------------------------------------------------------------------------------------------------------------------
@@ -17,13 +27,12 @@ local me = peripheral.find("meBridge")
 if not me then error("meBridge not found") end
 
 
--- meBridge peripheral, isItemCraftable table variable. Bug: Only returns if item amount >=1 ?
+-- meBridge peripheral, isItemCraftable table variable. Bug?: Only returns pattern item info if item amount >=1
 local parsedData = {}
 
 local w, h = term.getSize()
 local mainF = basalt.createFrame():show():setBackground(colours.purple)
 local pollF = mainF:addFrame("test"):setSize(w-2,h):setPosition(2,5):setBackground(colours.yellow)
---local itemF = pollF.addFrame():setSize(w-4,1):setPosition(2,2):setBackground(colours.red)
 local pollingProgress = mainF:addProgressbar():setPosition(1,4):setBackground(colours.white):setProgress(10)
 -- -------------------------------------------------------------------------------------------------------------------
 local function fancyButton(self, event, button, x, y)
@@ -49,12 +58,12 @@ local function updateConfig(parsed)
 end
 
 -- -------------------------------------------------------------------------------------------------------------------
-local function loadInterface(parsed, frame)
+local function loadInterface(parsed, frame) -- parsedData, pollF
 	local items = {}
 	local labelName = {}
 	local labelAmount = {}
 	local inputSetpoint = {}
-	local w, h = frame:getSize() -- of pollF frame
+	local w, h = frame:getSize()
 	local tempParsed = parsed
 	for i=1, #tempParsed do
 		items[i] = frame:addFrame():setBackground(colours.cyan):setPosition(2,i*2):setSize(w-4,1)
@@ -105,13 +114,14 @@ local function loadConfig()
 	return cfg
 end
 
--- scans ae2 and loads user setpoints if they exist or sets to 1
--- need to explain why the redstone pulse
+-- scans ae2 for craftable patterns and loads user setpoints if they exist or set to 1
+-- quirk: redstone to pulse AE2 temporary inventory on/off because me.listCraftableItems doesn't find a pattern if there is 0 items...
 local function scanCraftableItems(frame)
-	local parsed = {} -- new table to hold name, amount, setpoint
-	local config = loadConfig() -- load any existing user setpoints, or set to 1
+	local parsed = {} -- new table: name, amount, setpoint
+	local config = loadConfig()
 	local ae2Raw, loadedSetpoint
 	
+	--basalt.debug("Redstone On")
 	redstone.setOutput("back", true)
 	os.sleep(1)
 	
@@ -129,25 +139,28 @@ local function scanCraftableItems(frame)
 	end
 	
 	redstone.setOutput("back", false)
-	basalt.debug("Redstone Off")
+	--basalt.debug("Redstone Off")
 	
 	local f = fs.open("meBridge.txt", "w")
 	f.write(textutils.serialize(parsed))
 	f.close()
-	basalt.debug("Saved!")
+	basalt.debug("Saved Setpoints!")
 	
-	local interface = loadInterface(parsed, frame) -- pass the data and frame to draw it on
+	local interface = loadInterface(parsed, frame) -- parsedData and pollF
 	
 	return parsed
 end
 
+
 local function testCraft()
-	basalt.debug("calling craft")
-	myItem = {name = "minecraft:chest", count = 1}
-	if me.isItemCrafting(myItem) then
-		return
+	basalt.debug("calling testCraft()")
+	for k, v in pairs(parsedData) do
+		if v.amount < v.setpoint then
+			basalt.debug(v.amount, v.setpoint)
+			me.craftItem(v)
+			os.sleep(1)
+		end
 	end
-	me.craftItem(myItem)
 end
 
 local buttonRescan = mainF:addButton():onClick(basalt.schedule(function() parsedData = scanCraftableItems(pollF) end)):setSize(10,3):setPosition(1,1):setValue("Rescan")
@@ -156,17 +169,19 @@ fancyButton(buttonRescan)
 local buttonTestCraft = mainF:addButton():onClick(basalt.schedule(function() testCraft() end)):setSize(10,3):setPosition(15,1):setValue("Test Craft")
 fancyButton(buttonRescan)
 
-local function myMain(parsed)
+local function myMain() -- why can this function see parsedData, shouldn't it be out of scope?
 	while true do
 		os.sleep(1)
 		
-		--basalt.schedule(testCraft())
+		--[[for k, v in pairs(parsedData) do
+			basalt.debug(k ,v.name, v.setpoint)
+		end--]]
+	
 		
 	end
 end
 
 parsedData = scanCraftableItems(pollF)
--- -------------------------------------------------------------------------------------------------------------------
---basalt.debug("Hi")
-parallel.waitForAll(basalt.autoUpdate, myMain)
 
+parallel.waitForAll(basalt.autoUpdate, myMain)
+--basalt.schedule(function() basalt.debug("testting") os.sleep(1)end)
