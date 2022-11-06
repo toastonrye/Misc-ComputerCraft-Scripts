@@ -1,3 +1,10 @@
+--[[
+toastonrye's AE2 Setpoint Controller
+
+bugs:
+- when clicking off an input box, without entering a number leaves it blank. Can't figure out onLoseFocus event..
+
+--]]
 -- -------------------------------------------------------------------------------------------------------------------
 local filePath = "basalt.lua"
 if not(fs.exists(filePath))then
@@ -8,6 +15,7 @@ local basalt = require("basalt")
 
 local me = peripheral.find("meBridge")
 if not me then error("meBridge not found") end
+
 
 -- meBridge peripheral, isItemCraftable table variable. Bug: Only returns if item amount >=1 ?
 local parsedData = {}
@@ -58,6 +66,17 @@ local function loadInterface(parsed, frame)
 		inputSetpoint = items[i]:addInput():setInputType("number"):setValue(tempParsed[i].setpoint)
 			:setPosition(w*0.8, 1):setBackground(colours.lightBlue)
 			:onKey(function(self, event, key)
+				if key == keys.enter or key == keys.numPadEnter then
+					local t = self.getValue()
+					if t == "" or t < 0 or t > 10000 then
+						t = 0
+						self:setValue(0)
+					end
+					tempParsed[i].setpoint = t
+					updateConfig(tempParsed)
+				end
+			end)
+			:onLoseFocus(function(self)
 				if key == keys.enter or key == keys.numPadEnter then
 					local t = self.getValue()
 					if t == "" or t < 0 or t > 10000 then
@@ -139,59 +158,3 @@ parsedData = scanCraftableItems(pollF) -- try to read meBridge.txt if it exists,
 --basalt.debug("Hi")
 parallel.waitForAll(basalt.autoUpdate, myMain)
 
---[[
-
-for k,v in pairs(p) do
-	basalt.debug("init " .. k, v.name, v.setpoint)
-end
-
-local buttonAppend = mainF:addButton():onClick(function() appendMe(ae2RawData) end):setSize(10,3):setPosition(36,1):setValue("Append")
-fancyButton(buttonAppend)
-
-local buttonSave = mainF:addButton():onClick(function() saveMe(ae2RawData) end):setSize(10,3):setPosition(12,1):setValue("Save")
-fancyButton(buttonSave)
-
-local function saveMe(p)
-	for k, v in pairs(p) do
-		--p[k].setpoint = 32
-	end
-	
-
-	local f = fs.open("meBridge.txt", "w")
-	f.write(textutils.serialize(p))
-	f.close()
-	basalt.debug("Saved!")
-end
-
-local function appendMe(p)
-	local f = fs.open("meBridge.txt", "r")
-	local d = f.readAll()
-	f.close()
-	local load = textutils.unserialize(d)
-	
-	local m = false
-	if load == nil then -- if meBridge empty/non-existent, set it to recent polling data
-		load = p
-	else -- if file not empty, try to append missing keys
-		for k, v in pairs(p) do
-			for k2, v2 in pairs(load) do
-				if v.name == v2.name and not m then
-					--basalt.debug(v.name .. " = " .. load[k].name)
-					m = true
-				end
-				if not m then
-					table.insert(load, v) -- THE PROBLEM??
-					basalt.debug("Adding " .. v.name .. " | " .. v.amount .. " | " .. v.setpoint)
-				end
-				m = false
-			end
-		end
-	end
-	
-	local f = fs.open("meBridge.txt", "w") -- do not append, values inserted into "load"
-	f.write(textutils.serialize(load))
-	--f.write(load)
-	f.close()
-	basalt.debug("Appended!")
-end
---]]
